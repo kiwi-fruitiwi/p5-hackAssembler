@@ -51,17 +51,52 @@ function setup() {
         console.log(decToBinConcat(i))
     }
 
+    /* TODO ignore whitespace, ignore comments */
 
     /** iterate through every line in the asm file. indicate c or a */
-    let decimal
-    for (let s of file) {
+    let decimal // the number part of an a-instruction
+    let machineCode // machine code translation of an assembly instruction
+    let equalsIndex
+    let semicolonIndex
+    let dest
+    let comp, compStartIndex, compEndIndex
+    let jump
+    for (let line of file) {
         /* a-instructions always start with the '@' symbol followed by an int */
-        if (s.charAt(0) === '@') {
+        compEndIndex = line.length
+        if (line.charAt(0) === '@') {
+            /** this is an a-instruction */
             /* substring(1) gives remainder of the a-instruction, an int */
-            decimal = s.substring(1)
-            console.log(`${s} → a, ${decimal} → ${decToBinConcat(decimal)}`)
+            decimal = line.substring(1)
+            console.log(`${line} → a, ${decimal} → ${decToBinConcat(decimal)}`)
         } else {
-            console.log(`${s} → c`)
+            /** this is a c-instruction! */
+            /* c-instructions are in the format 111 acccccc ddd jjj */
+            /* identify if we have all three parts: dest=comp;jump */
+            /* recall that substring's end in [start, end) is exclusive */
+            equalsIndex = line.indexOf('=')
+            semicolonIndex = line.indexOf(';')
+
+            /* if a '=' is not present, there is no destination */
+            if (equalsIndex === -1) {
+                dest = 'null'
+                compStartIndex = 0
+            } else {
+                compStartIndex = equalsIndex + 1
+                dest = line.substring(0, equalsIndex)
+            }
+
+            /* if a semicolon is not present, there is no jump */
+            if (semicolonIndex === -1) {
+                jump = 'null'
+                /* no jump means comp is the rest of the line */
+                comp = line.substring(compStartIndex)
+            } else {
+                jump = line.substring(semicolonIndex)
+                comp = line.substring(compStartIndex, semicolonIndex)
+            }
+
+            console.log(`${line} → c: dest=${dest}, comp=${comp}, jump=${jump}`)
         }
     }
 }
