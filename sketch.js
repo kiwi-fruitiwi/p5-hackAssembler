@@ -34,10 +34,12 @@
 
 
 let font
+let file
 
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
+    file = loadStrings('asm/MaxL.asm')
 }
 
 
@@ -46,7 +48,21 @@ function setup() {
     colorMode(HSB, 360, 100, 100, 100)
 
     for (let i = 0; i <= 17; i++) {
-        console.log(decToBin(i))
+        console.log(decToBinConcat(i))
+    }
+
+
+    /** iterate through every line in the asm file. indicate c or a */
+    let decimal
+    for (let s of file) {
+        /* a-instructions always start with the '@' symbol followed by an int */
+        if (s.charAt(0) === '@') {
+            /* substring(1) gives remainder of the a-instruction, an int */
+            decimal = s.substring(1)
+            console.log(`${s} → a, ${decimal} → ${decToBinConcat(decimal)}`)
+        } else {
+            console.log(`${s} → c`)
+        }
     }
 }
 
