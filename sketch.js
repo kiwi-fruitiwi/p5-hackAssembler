@@ -35,11 +35,13 @@
 
 let font
 let file
+let parser
 
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
     file = loadStrings('asm/MaxL.asm')
+    parser = new Parser()
 }
 
 
@@ -47,8 +49,9 @@ function setup() {
     createCanvas(640, 360)
     colorMode(HSB, 360, 100, 100, 100)
 
+    /* debug output for decimal to binary conversion */
     for (let i = 0; i <= 17; i++) {
-        console.log(decToBinConcat(i))
+        // console.log(decToBinConcat(i))
     }
 
     /* TODO ignore whitespace, ignore comments */
@@ -61,6 +64,10 @@ function setup() {
     let dest
     let comp, compStartIndex, compEndIndex
     let jump
+
+    /* machine code translations for dest, comp, jump */
+    let destBin, compBin, jumpBin
+
     for (let line of file) {
         /* a-instructions always start with the '@' symbol followed by an int */
         compEndIndex = line.length
@@ -68,7 +75,11 @@ function setup() {
             /** this is an a-instruction */
             /* substring(1) gives remainder of the a-instruction, an int */
             decimal = line.substring(1)
-            console.log(`${line} → a, ${decimal} → ${decToBinConcat(decimal)}`)
+            // console.log(`${line} → a,${decimal} → ${decToBin(decimal)}`)
+
+            machineCode = '0'
+            machineCode += decToBin(decimal)
+            console.log(`${line} → a,${decimal} → ${machineCode}`)
         } else {
             /** this is a c-instruction! */
             /* c-instructions are in the format 111 acccccc ddd jjj */
@@ -92,11 +103,20 @@ function setup() {
                 /* no jump means comp is the rest of the line */
                 comp = line.substring(compStartIndex)
             } else {
-                jump = line.substring(semicolonIndex)
+                jump = line.substring(semicolonIndex+1)
                 comp = line.substring(compStartIndex, semicolonIndex)
             }
 
-            console.log(`${line} → c: dest=${dest}, comp=${comp}, jump=${jump}`)
+            compBin = parser.compDict[comp]
+            destBin = parser.destDict[dest]
+            jumpBin = parser.jumpDict[jump]
+            machineCode = `111 ${compBin} ${destBin} ${jumpBin}`
+
+            console.log(`${line} → c: 
+            comp=${comp}, ${compBin}
+            dest=${dest}, ${destBin}
+            jump=${jump}, ${jumpBin}
+            ${machineCode}`)
         }
     }
 }
@@ -120,7 +140,7 @@ function decToBinCharArr(n) {
  * Converts the decimal number n to a binary string using string concatenation
  * @param n
  */
-function decToBinConcat(num) {
+function decToBin(num) {
     let current = num
     let result = ''
     let n = 14
