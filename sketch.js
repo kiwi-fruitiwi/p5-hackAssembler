@@ -5,11 +5,19 @@
  *      main: initializes files, main logic loop
  *          reads files, but only test on small strings at first
  *          unit tests? make sure manually transcribed instructions match
+ *      test: junit-style test cases, asserting each instruction equal to binary
+ *          example instructions
+ *      parser: unpacks each instruction → @n or dest=comp;jump
+ *          a-instruction
+ *              ins[0] === '@' → rest of string is decimal → convert to int
+ *          c-instruction
+ *              indexOf(';') indicates existence of jump section
+ *              indexOf('=') returns -1 if no dest
  *      encode: translates each field into its corresponding binary value
- *          dictionary of dest, comp, jmp *
- *      parser: unpacks each instruction → dest=comp;jump
- *          indexOf(';') indicates existence of jump section
- *          indexOf('=') returns -1 if no dest
+ *          a-instruction
+ *              use decimal to binary conversion
+ *          c-instruction
+ *              dictionary of dest, comp, jmp *
  *      symbolTable: expandable dictionary during 2nd pass
  *  staged development
  *      basic assembler: no symbols yet
@@ -19,7 +27,68 @@
  *          add, max, maxL, rect, rectL, Pong, PongL
  *          add → white space, instructions
  *
+ *  coding plan
+ *  ☐   decimal to binary conversion, starting from 2^15
  *
+ */
+
+
+let font
+
+
+function preload() {
+    font = loadFont('data/meiryo.ttf')
+}
+
+
+function setup() {
+    createCanvas(640, 360)
+    colorMode(HSB, 360, 100, 100, 100)
+
+    for (let i = 0; i <= 17; i++) {
+        console.log(decToBin(i))
+    }
+}
+
+
+function draw() {
+    background(234, 34, 24)
+}
+
+
+/**
+ * Converts the decimal number n to a binary string using a character array
+ * @param n
+ */
+function decToBinCharArr(n) {
+
+}
+
+
+/**
+ * Converts the decimal number n to a binary string using string concatenation
+ * @param n
+ */
+function decToBinConcat(num) {
+    let current = num
+    let result = ''
+    let n = 14
+
+    /* use concat to append bits to growing binary number */
+    while (n >= 0) {
+        if (current - 2**n >= 0) {
+            result = result.concat('1')
+            current -= 2**n
+        } else result = result.concat('0')
+
+        n -= 1
+    }
+
+    return result
+}
+
+
+/**
  *  old notes →
  *  construct empty symbol table. add predefined symbols
  *      1ˢᵗ pass: scan entire program
@@ -76,21 +145,4 @@
  *                      001 ← dest is M
  *                      000 ← jmp is null
  *              output translation to file
- *
- *
- *
  */
-let font
-
-function preload() {
-    font = loadFont('data/meiryo.ttf')
-}
-
-function setup() {
-    createCanvas(640, 360)
-    colorMode(HSB, 360, 100, 100, 100)
-}
-
-function draw() {    
-    background(234, 34, 24)
-}
