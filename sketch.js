@@ -36,39 +36,147 @@
 let font
 let file
 let parser
+let output // a div containing our output
 
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
-    file = loadStrings('asm/MaxL.asm')
+    file = loadStrings('asm/Max.asm')
     parser = new Parser()
 }
 
 
 function setup() {
-    createCanvas(640, 360)
+    createCanvas(640*2, 360*2)
+    noCanvas()
     colorMode(HSB, 360, 100, 100, 100)
 
+    output = createDiv()
+
+    generateSymbolTable(output, file)
+    // assembleL(output, file)
+}
+
+
+/**
+ *  helper function for assemble, which translates .asm into machine code
+ *  including symbols
+ *
+ *  create symbol table dictionary
+ *      use dec → binary converter
+ *      1st pass: read every line; lineCount=1
+ *          if whitespace, skip
+ *          else
+ *              look for open paren, '('
+ *                  if found, extract what's inside
+ *                  add (name, address) to symbolTable. address is lineCount+1
+ *              lineCount++
+ *      2nd pass: read every line; lineCount=1 again
+ *          n=16
+ *          for each instruction
+ *              if a-instruction (check if begins with @)
+ *              if instruction is @symbol, look up key,value pair in sTable
+ *              if (value), use line number returned → a-instruction
+ */
+function generateSymbolTable(output, file) {
+    /* temporary storage for each line of translated machine code */
+    let lineOutput = ''
+    let symbolTable = {
+        "R0":       decToBin(0),
+        "R1":       decToBin(1),
+        "R2":       decToBin(2),
+        "R3":       decToBin(3),
+        "R4":       decToBin(4),
+        "R5":       decToBin(5),
+        "R6":       decToBin(6),
+        "R7":       decToBin(7),
+        "R8":       decToBin(8),
+        "R9":       decToBin(9),
+        "R10":      decToBin(10),
+        "R11":      decToBin(11),
+        "R12":      decToBin(12),
+        "R13":      decToBin(13),
+        "R14":      decToBin(14),
+        "R15":      decToBin(15),
+        "SCREEN":   decToBin(16384),
+        "KBD":      decToBin(24576),
+        "SP":       decToBin(0),
+        "LCL":      decToBin(1),
+        "ARG":      decToBin(2),
+        "THIS":     decToBin(3),
+        "THAT":     decToBin(4),
+    }
+
+    // console.log(symbolTable)
+
+    /** iterate through every line in the asm file
+     *      if comment or whitespace: skip
+     *      otherwise determine if a-instruction or c-instruction
+     */
+    for (let line of file) {
+        if (line === "")
+            continue
+
+        if (line.charAt(0) === '/' && line.charAt(1) === '/')
+            continue
+
+        /* remove mid-line comments after cleaning start-line comments
+         *  search for indexOf '/', then check if next one is also '/'
+         */
+        let firstSlash = line.indexOf('/')
+        if (line.charAt(firstSlash+1) === '/')
+            /* throw out the rest of the line */
+            line = line.substring(0, firstSlash)
+
+        /* strip out leading and trailing whitespace */
+        line = line.trim()
+
+
+
+
+        lineOutput += line + '\n'
+    }
+
+    /* put our binary code in a <pre> block and set the html of our div */
+    output.html('<pre>' + lineOutput + '</pre>')
+}
+
+
+/**
+ * Populates a div, output, with machine code translation of 'file'
+ * @returns {*}
+ */
+function assembleL(output, file) {
     /* debug output for decimal to binary conversion */
     for (let i = 0; i <= 17; i++) {
         // console.log(decToBinConcat(i))
     }
 
-    /* TODO ignore whitespace, ignore comments */
-
-    /** iterate through every line in the asm file. indicate c or a */
+    let binaryCode = ''
     let decimal // the number part of an a-instruction
     let machineCode // machine code translation of an assembly instruction
-    let equalsIndex
-    let semicolonIndex
-    let dest
+    let equalsIndex // location of '=' in a c-instruction, if available
+    let semicolonIndex // location of ';' in a c-instruction, if available
+
+    let dest // token for the 'dest' part of dest=comp;jump
     let comp, compStartIndex, compEndIndex
     let jump
 
-    /* machine code translations for dest, comp, jump */
+    /* machine code translations for dest, comp, jump. Bin=binary */
     let destBin, compBin, jumpBin
 
+
+    /** iterate through every line in the asm file
+     *      if comment or whitespace: skip
+     *      otherwise determine if a-instruction or c-instruction
+     */
     for (let line of file) {
+        if (line === "")
+            continue
+
+        if (line.charAt(0) === '/' && line.charAt(1) === '/')
+            continue
+
         /* a-instructions always start with the '@' symbol followed by an int */
         compEndIndex = line.length
         if (line.charAt(0) === '@') {
@@ -80,6 +188,9 @@ function setup() {
             machineCode = '0'
             machineCode += decToBin(decimal)
             console.log(`${line} → a,${decimal} → ${machineCode}`)
+
+            /* add machine code translation to our output 'file' */
+            binaryCode += machineCode + '\n'
         } else {
             /** this is a c-instruction! */
             /* c-instructions are in the format 111 acccccc ddd jjj */
@@ -110,15 +221,21 @@ function setup() {
             compBin = parser.compDict[comp]
             destBin = parser.destDict[dest]
             jumpBin = parser.jumpDict[jump]
-            machineCode = `111 ${compBin} ${destBin} ${jumpBin}`
+            machineCode = `111${compBin}${destBin}${jumpBin}`
 
-            console.log(`${line} → c: 
-            comp=${comp}, ${compBin}
-            dest=${dest}, ${destBin}
-            jump=${jump}, ${jumpBin}
-            ${machineCode}`)
+            console.log(`${line} → c: \n`+
+                `  comp=${comp}, ${compBin}\n` +
+                `  dest=${dest}, ${destBin}\n` +
+                `  jump=${jump}, ${jumpBin}\n` +
+                `${machineCode}`)
+
+            /* add machine code translation to our output 'file' */
+            binaryCode += machineCode + '\n'
         }
     }
+
+    /* put our binary code in a <pre> block and set the html of our div */
+    output.html('<pre>' + binaryCode + '</pre>')
 }
 
 
