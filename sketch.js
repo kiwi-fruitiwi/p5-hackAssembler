@@ -109,14 +109,20 @@ function generateSymbolTable(output, file) {
 
     // console.log(symbolTable)
 
-    /** iterate through every line in the asm file
+    /* machine code indices in the ROM start at 0 */
+    let lineNumber = 0
+
+    /** FIRST pass: build symbol table
+     *      iterate through every line in the asm file
      *      if comment or whitespace: skip
      *      otherwise determine if a-instruction or c-instruction
      */
     for (let line of file) {
+        /* ignore whitespace */
         if (line === "")
             continue
 
+        /* ignore full-line comments that begin with '//' */
         if (line.charAt(0) === '/' && line.charAt(1) === '/')
             continue
 
@@ -131,14 +137,24 @@ function generateSymbolTable(output, file) {
         /* strip out leading and trailing whitespace */
         line = line.trim()
 
+        /** look for label symbols */
+        if (line.charAt(0) === '(') {
+            /* assume syntax is clean; last char should be ')' */
+            line = line.substring(1, line.length-1)
 
+            symbolTable[line] = lineNumber+1
+        } else {
+            lineNumber += 1
+        }
 
-
-        lineOutput += line + '\n'
+        lineOutput += `${lineNumber}: ${line} \n`
     }
+
+    /** SECOND PASS: add variable symbols.  */
 
     /* put our binary code in a <pre> block and set the html of our div */
     output.html('<pre>' + lineOutput + '</pre>')
+    console.log(symbolTable)
 }
 
 
