@@ -184,7 +184,28 @@ function generateSymbolTable(output, file) {
      *  output translated instruction
      */
     for (let line of firstPassResults) {
+        /* since our predefined symbols go from 0 to 15, 16 is the first
+         spot in RAM we can use for variables */
+        let n = 16
 
+        /* matches variable names that start with a character, may contain
+         underscores and numbers */
+        const variable = new RegExp('^[a-z][a-z0-9_]+$', 'i') // /^[a-z0-9_]+$/i
+        const decimal = new RegExp('')
+
+        /* instruction is @symbol TODO naming conventions for variables? */
+        if (line.charAt(0) === '@') {
+            /* what follows the '@', or ampersand? */
+            let afterAmp = line.substring(1)
+
+            /* what follows is a number */
+            console.log(`${afterAmp} → testing:${variable.test(afterAmp)}`)
+            // console.log(`@ → ${afterAmp}`)
+
+            /* what follows is a variable name → look up in table or add
+             * note that as long as line.charAt(1) is alphanumeric, it
+             * qualifies as a variable name */
+        }
     }
 }
 
