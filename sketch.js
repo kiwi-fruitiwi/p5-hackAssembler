@@ -41,7 +41,7 @@ let output // a div containing our output
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
-    file = loadStrings('asm/Max.asm')
+    file = loadStrings('asm/MaxL.asm')
     parser = new Parser()
 }
 
@@ -189,18 +189,28 @@ function generateSymbolTable(output, file) {
         let n = 16
 
         /* matches variable names that start with a character, may contain
-         underscores and numbers */
-        const variable = new RegExp('^[a-z][a-z0-9_]+$', 'i') // /^[a-z0-9_]+$/i
-        const decimal = new RegExp('')
+         underscores and numbers. equivalent of const v = /^[a-z0-9_]+$/i */
+        const variable = new RegExp('^[a-z][a-z0-9_]+$', 'i')
 
-        /* instruction is @symbol TODO naming conventions for variables? */
+        /* matches decimal expressions after '@' */
+        const decimal = new RegExp('^[0-9]+$')
+
+        /* a-instruction, which always starts with '@' */
         if (line.charAt(0) === '@') {
             /* what follows the '@', or ampersand? */
             let afterAmp = line.substring(1)
 
             /* what follows is a number */
-            console.log(`${afterAmp} → testing:${variable.test(afterAmp)}`)
-            // console.log(`@ → ${afterAmp}`)
+            if (decimal.test(afterAmp)) {
+                console.log(`${afterAmp} → dTB: ${decToBin(afterAmp)}`)
+            }
+
+            /* what follows is a variable */
+            if (variable.test(afterAmp)) {
+                console.log(`${afterAmp} → process me!`)
+            }
+
+            // console.log(`${afterAmp} → testing:${variable.test(afterAmp)}`)
 
             /* what follows is a variable name → look up in table or add
              * note that as long as line.charAt(1) is alphanumeric, it
