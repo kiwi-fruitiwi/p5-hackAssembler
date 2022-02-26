@@ -81,6 +81,13 @@ function setup() {
 function generateSymbolTable(output, file) {
     /* temporary storage for each line of translated machine code */
     let lineOutput = ''
+
+    /* create array of asm instructions to use in the second pass
+     *  this array removes whitespace, comments, and adds labels
+     *  TODO: do we need to keep track of line numbers?
+     *   I don't think so...
+     */
+    let firstPassResults = []
     let symbolTable = {
         "R0":       decToBin(0),
         "R1":       decToBin(1),
@@ -115,7 +122,8 @@ function generateSymbolTable(output, file) {
     /** FIRST pass: build symbol table
      *      iterate through every line in the asm file
      *      if comment or whitespace: skip
-     *      otherwise determine if a-instruction or c-instruction
+     *      add label symbols to symbolTable, minding lineNumbers
+     *      fill firstPassResults, a string array used in the second pass
      */
     for (let line of file) {
         /* ignore whitespace */
@@ -137,24 +145,47 @@ function generateSymbolTable(output, file) {
         /* strip out leading and trailing whitespace */
         line = line.trim()
 
-        /** look for label symbols */
+        /** look for label symbols: add them to symbolTable with a value of
+         *  the line number of the next instruction. since these lines are
+         *  not actual instructions, they are left out of firstPassResults
+         */
         if (line.charAt(0) === '(') {
-            /* assume syntax is clean; last char should be ')' */
-            line = line.substring(1, line.length-1)
+            /* assume syntax is clean; last char should be ')'
+             * remove parens to extract label
+             */
+            let label = line.substring(1, line.length-1)
 
-            symbolTable[line] = lineNumber+1
+            symbolTable[label] = decToBin(lineNumber+1)
+            console.log(`added (${label},${lineNumber+1}) to the symbol table`)
         } else {
             lineNumber += 1
+            lineOutput += `${lineNumber}:\t${line} \n`
+            firstPassResults.push(line)
         }
-
-        lineOutput += `${lineNumber}: ${line} \n`
     }
-
-    /** SECOND PASS: add variable symbols.  */
 
     /* put our binary code in a <pre> block and set the html of our div */
     output.html('<pre>' + lineOutput + '</pre>')
-    console.log(symbolTable)
+    console.log(firstPassResults)
+
+
+    /**
+     * second pass: professor Schocken's pseudocode, "the assembly process"
+     *  set n to 16
+     *  scan entire program again, meaning we scan firstPassResults
+     *  if instruction is @symbol, look up symbol in the symbol table
+     *      if (symbol, value) is found, use value to complete translation
+     *      if not found:
+     *          add (symbol, n) to symbolTable
+     *          use n to complete the instruction's translation
+     *          n++
+     *  if instruction is a c-instruction, translate normally
+     *      encapsulate c-instruction translation into a function?
+     *  output translated instruction
+     */
+    for (let line of firstPassResults) {
+
+    }
 }
 
 
