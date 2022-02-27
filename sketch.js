@@ -36,12 +36,15 @@
 let font
 let file
 let parser
+
+let leftDiv, middleDiv, rightDiv
+
 let output // a div containing our output
 
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
-    file = loadStrings('asm/Rect.asm')
+    file = loadStrings('asm/Max.asm')
     parser = new Parser()
 }
 
@@ -51,10 +54,26 @@ function setup() {
     noCanvas()
     colorMode(HSB, 360, 100, 100, 100)
 
-    output = createDiv()
+    // displayAsm(select('#left'), file)
+    // assembleL(select('#left'), loadStrings('asm/RectL.asm'))
+    assemble(select('#left'), file)
+}
 
-    assemble(output, file)
-    // assembleL(output, file)
+
+/**
+ * outputs the contents of file to element
+ * @param output the element we want to output to
+ * @param file
+ */
+function displayAsm(output, file) {
+    let innerHTML = ''
+
+    for (let n in file) {
+        innerHTML +=`${n}:\t${file[n]}\n`
+
+    }
+
+    output.html(`<pre>${innerHTML}</pre>`)
 }
 
 
@@ -156,12 +175,14 @@ function assemble(output, file) {
 
             symbolTable[label] = lineNumber
             console.log(`added (${label}) to sT with value ${lineNumber}`)
+            lineOutput += `\t${line} \n`
         } else {
             lineOutput += `${lineNumber}:\t${line} \n`
             lineNumber += 1
             firstPassResults.push(line)
         }
     }
+
 
     /* put our binary code in a <pre> block and set the html of our div */
     output.html('<pre>' + lineOutput + '</pre>')
@@ -258,7 +279,8 @@ function assemble(output, file) {
     }
 
     /* true as a second argument to html() appends */
-    output.html('\n\n\n<pre>' + lineOutput + '</pre>', true)
+    let machineCodeOutput = select('#middle')
+    machineCodeOutput.html('<pre>' + lineOutput + '</pre>')
     console.log(symbolTable)
 }
 
@@ -374,15 +396,6 @@ function translateC(line) {
 
 function draw() {
     background(234, 34, 24)
-}
-
-
-/**
- * Converts the decimal number n to a binary string using a character array
- * @param n
- */
-function decToBinCharArr(n) {
-
 }
 
 

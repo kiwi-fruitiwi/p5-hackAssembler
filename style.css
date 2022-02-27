@@ -1,12 +1,28 @@
 html, body {
-  margin: 0;
-  padding: 0;
-  background-color: rgb(32, 33, 51);
-  color: gainsboro;
-  padding: 10px;
+    margin: 0;
+    padding: 0;
+    background-color: rgb(32, 33, 51);
+    color: gainsboro;
+    padding: 10px;
 }
 
 canvas {
-  display: block;
-  margin: auto;
+    display: block;
+    margin: auto;
+}
+
+
+.column {
+    float: left;
+    width: 30%;
+    overflow: auto;
+    overflow-wrap: break-word;
+    padding: 10px;
+}
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
 }
