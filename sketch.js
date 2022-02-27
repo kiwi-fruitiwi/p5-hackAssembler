@@ -41,7 +41,7 @@ let output // a div containing our output
 
 function preload() {
     font = loadFont('data/meiryo.ttf')
-    file = loadStrings('asm/MaxL.asm')
+    file = loadStrings('asm/Rect.asm')
     parser = new Parser()
 }
 
@@ -53,14 +53,13 @@ function setup() {
 
     output = createDiv()
 
-    generateSymbolTable(output, file)
+    assemble(output, file)
     // assembleL(output, file)
 }
 
 
 /**
- *  helper function for assemble, which translates .asm into machine code
- *  including symbols
+ *  translates .asm into machine code including symbols
  *
  *  create symbol table dictionary
  *      use dec → binary converter
@@ -78,7 +77,7 @@ function setup() {
  *              if instruction is @symbol, look up key,value pair in sTable
  *              if (value), use line number returned → a-instruction
  */
-function generateSymbolTable(output, file) {
+function assemble(output, file) {
     /* temporary storage for each line of translated machine code */
     let lineOutput = ''
 
@@ -89,29 +88,29 @@ function generateSymbolTable(output, file) {
      */
     let firstPassResults = []
     let symbolTable = {
-        "R0":       decToBin(0),
-        "R1":       decToBin(1),
-        "R2":       decToBin(2),
-        "R3":       decToBin(3),
-        "R4":       decToBin(4),
-        "R5":       decToBin(5),
-        "R6":       decToBin(6),
-        "R7":       decToBin(7),
-        "R8":       decToBin(8),
-        "R9":       decToBin(9),
-        "R10":      decToBin(10),
-        "R11":      decToBin(11),
-        "R12":      decToBin(12),
-        "R13":      decToBin(13),
-        "R14":      decToBin(14),
-        "R15":      decToBin(15),
-        "SCREEN":   decToBin(16384),
-        "KBD":      decToBin(24576),
-        "SP":       decToBin(0),
-        "LCL":      decToBin(1),
-        "ARG":      decToBin(2),
-        "THIS":     decToBin(3),
-        "THAT":     decToBin(4),
+        "R0":       0,
+        "R1":       1,
+        "R2":       2,
+        "R3":       3,
+        "R4":       4,
+        "R5":       5,
+        "R6":       6,
+        "R7":       7,
+        "R8":       8,
+        "R9":       9,
+        "R10":      10,
+        "R11":      11,
+        "R12":      12,
+        "R13":      13,
+        "R14":      14,
+        "R15":      15,
+        "SCREEN":   16384,
+        "KBD":      24576,
+        "SP":       0,
+        "LCL":      1,
+        "ARG":      2,
+        "THIS":     3,
+        "THAT":     4,
     }
 
     // console.log(symbolTable)
@@ -155,18 +154,17 @@ function generateSymbolTable(output, file) {
              */
             let label = line.substring(1, line.length-1)
 
-            symbolTable[label] = decToBin(lineNumber+1)
-            console.log(`added (${label},${lineNumber+1}) to the symbol table`)
+            symbolTable[label] = lineNumber
+            console.log(`added (${label}) to sT with value ${lineNumber}`)
         } else {
-            lineNumber += 1
             lineOutput += `${lineNumber}:\t${line} \n`
+            lineNumber += 1
             firstPassResults.push(line)
         }
     }
 
     /* put our binary code in a <pre> block and set the html of our div */
     output.html('<pre>' + lineOutput + '</pre>')
-    console.log(firstPassResults)
 
 
     /**
@@ -183,11 +181,17 @@ function generateSymbolTable(output, file) {
      *      encapsulate c-instruction translation into a function?
      *  output translated instruction
      */
+
+    /* string storing translated machine code that we add to our output file */
+    let machineCode
+
+    /* reset lineOutput for the second pass */
+    lineOutput = ''
+
     for (let line of firstPassResults) {
         /* since our predefined symbols go from 0 to 15, 16 is the first
          spot in RAM we can use for variables */
         let n = 16
-
         /* matches variable names that start with a character, may contain
          underscores and numbers. equivalent of const v = /^[a-z0-9_]+$/i */
         const variable = new RegExp('^[a-z][a-z0-9_]+$', 'i')
@@ -200,24 +204,41 @@ function generateSymbolTable(output, file) {
             /* what follows the '@', or ampersand? */
             let afterAmp = line.substring(1)
 
-            /* what follows is a number */
+            /* what follows is a number: output an a-instruction translating
+             this number to binary */
             if (decimal.test(afterAmp)) {
-                console.log(`${afterAmp} → dTB: ${decToBin(afterAmp)}`)
-            }
+                // console.log(`${afterAmp} → dTB: ${decToBin(afterAmp)}`)
+                machineCode = `0${decToBin(afterAmp)}`
+                lineOutput += `${machineCode}\n`
 
-            /* what follows is a variable */
-            if (variable.test(afterAmp)) {
+            } else if (variable.test(afterAmp)) {
+                /**
+                 * what follows is a variable: check our symbolTable for the
+                 * value of the symbol. add the symbol to the table if it's
+                 * not already there. translate
+                 */
+
                 let symbol = afterAmp
-                if (!symbolTable[symbol]) {
-                    console.log(`symbol ${symbol} not found; adding!`)
+                console.log(`identifying ${symbol}`)
+                /* if the symbol doesn't already exist in our symbolTable,
+                 create it */
+                if (!(symbol in symbolTable)) {
+                    console.log(`adding ${symbol} to the symbolTable`)
                     symbolTable[afterAmp] = n
+
+                    /* set our translation to machineCode variable */
+                    machineCode = `0${decToBin(n)}`
+                    lineOutput += `${machineCode}\n`
+
                     n++
                 } else {
                     /* use the value of the symbol for our translation; this
                      value will be a binary number */
                     let symbolValue = symbolTable[symbol]
                     // console.log(`translation: 0${decToBin(symbolValue)}`)
-                    console.log(`translation: ${symbol} → 0${symbolValue}`)
+                    // console.log(`translation: ${symbol} → 0${symbolValue}`)
+                    machineCode = `0${decToBin(symbolValue)}`
+                    lineOutput += `${machineCode}\n`
                 }
 
                 // console.log(`${afterAmp} → process me!`)
@@ -231,9 +252,13 @@ function generateSymbolTable(output, file) {
         } else {
             /** this is a c-instruction */
             console.log(`${line} → ${translateC(line)}`)
+            machineCode = `${translateC(line)}\n`
+            lineOutput += machineCode
         }
     }
 
+    /* true as a second argument to html() appends */
+    output.html('\n\n\n<pre>' + lineOutput + '</pre>', true)
     console.log(symbolTable)
 }
 
