@@ -207,7 +207,20 @@ function generateSymbolTable(output, file) {
 
             /* what follows is a variable */
             if (variable.test(afterAmp)) {
-                console.log(`${afterAmp} → process me!`)
+                let symbol = afterAmp
+                if (!symbolTable[symbol]) {
+                    console.log(`symbol ${symbol} not found; adding!`)
+                    symbolTable[afterAmp] = n
+                    n++
+                } else {
+                    /* use the value of the symbol for our translation; this
+                     value will be a binary number */
+                    let symbolValue = symbolTable[symbol]
+                    // console.log(`translation: 0${decToBin(symbolValue)}`)
+                    console.log(`translation: ${symbol} → 0${symbolValue}`)
+                }
+
+                // console.log(`${afterAmp} → process me!`)
             }
 
             // console.log(`${afterAmp} → testing:${variable.test(afterAmp)}`)
@@ -215,13 +228,19 @@ function generateSymbolTable(output, file) {
             /* what follows is a variable name → look up in table or add
              * note that as long as line.charAt(1) is alphanumeric, it
              * qualifies as a variable name */
+        } else {
+            /** this is a c-instruction */
+            console.log(`${line} → ${translateC(line)}`)
         }
     }
+
+    console.log(symbolTable)
 }
 
 
 /**
- * Populates a div, output, with machine code translation of 'file'
+ * Populates a div, output, with machine code translation of 'file'. The
+ * file must be symbol-less.
  * @returns {*}
  */
 function assembleL(output, file) {
@@ -233,15 +252,6 @@ function assembleL(output, file) {
     let binaryCode = ''
     let decimal // the number part of an a-instruction
     let machineCode // machine code translation of an assembly instruction
-    let equalsIndex // location of '=' in a c-instruction, if available
-    let semicolonIndex // location of ';' in a c-instruction, if available
-
-    let dest // token for the 'dest' part of dest=comp;jump
-    let comp, compStartIndex, compEndIndex
-    let jump
-
-    /* machine code translations for dest, comp, jump. Bin=binary */
-    let destBin, compBin, jumpBin
 
 
     /** iterate through every line in the asm file
@@ -256,7 +266,7 @@ function assembleL(output, file) {
             continue
 
         /* a-instructions always start with the '@' symbol followed by an int */
-        compEndIndex = line.length
+
         if (line.charAt(0) === '@') {
             /** this is an a-instruction */
             /* substring(1) gives remainder of the a-instruction, an int */
@@ -274,38 +284,7 @@ function assembleL(output, file) {
             /* c-instructions are in the format 111 acccccc ddd jjj */
             /* identify if we have all three parts: dest=comp;jump */
             /* recall that substring's end in [start, end) is exclusive */
-            equalsIndex = line.indexOf('=')
-            semicolonIndex = line.indexOf(';')
-
-            /* if a '=' is not present, there is no destination */
-            if (equalsIndex === -1) {
-                dest = 'null'
-                compStartIndex = 0
-            } else {
-                compStartIndex = equalsIndex + 1
-                dest = line.substring(0, equalsIndex)
-            }
-
-            /* if a semicolon is not present, there is no jump */
-            if (semicolonIndex === -1) {
-                jump = 'null'
-                /* no jump means comp is the rest of the line */
-                comp = line.substring(compStartIndex)
-            } else {
-                jump = line.substring(semicolonIndex+1)
-                comp = line.substring(compStartIndex, semicolonIndex)
-            }
-
-            compBin = parser.compDict[comp]
-            destBin = parser.destDict[dest]
-            jumpBin = parser.jumpDict[jump]
-            machineCode = `111${compBin}${destBin}${jumpBin}`
-
-            console.log(`${line} → c: \n`+
-                `  comp=${comp}, ${compBin}\n` +
-                `  dest=${dest}, ${destBin}\n` +
-                `  jump=${jump}, ${jumpBin}\n` +
-                `${machineCode}`)
+            machineCode = translateC(line)
 
             /* add machine code translation to our output 'file' */
             binaryCode += machineCode + '\n'
@@ -314,6 +293,57 @@ function assembleL(output, file) {
 
     /* put our binary code in a <pre> block and set the html of our div */
     output.html('<pre>' + binaryCode + '</pre>')
+}
+
+
+/**
+ * translates a c-instruction in the form of dest=comp;jump into binary
+ * @param line the line of assembly we want to translate
+ *
+ * in machine language, c-instructions are in the format 111 acccccc ddd jjj
+ * identify if we have all three parts: dest=comp;jump
+ */
+function translateC(line) {
+    let equalsIndex // location of '=' in a c-instruction, if available
+    let semicolonIndex // location of ';' in a c-instruction, if available
+
+    let dest // token for the 'dest' part of dest=comp;jump
+    let comp, compStartIndex
+    let jump
+
+    /* machine code translations for dest, comp, jump. Bin=binary */
+    let destBin, compBin, jumpBin
+    let machineCode
+
+    /** this is a c-instruction! */
+    equalsIndex = line.indexOf('=')
+    semicolonIndex = line.indexOf(';')
+
+    /* if a '=' is not present, there is no destination */
+    if (equalsIndex === -1) {
+        dest = 'null'
+        compStartIndex = 0
+    } else {
+        compStartIndex = equalsIndex + 1
+        dest = line.substring(0, equalsIndex)
+    }
+
+    /* if a semicolon is not present, there is no jump */
+    if (semicolonIndex === -1) {
+        jump = 'null'
+        /* no jump means comp is the rest of the line */
+        comp = line.substring(compStartIndex)
+    } else {
+        jump = line.substring(semicolonIndex+1)
+        comp = line.substring(compStartIndex, semicolonIndex)
+    }
+
+    compBin = parser.compDict[comp]
+    destBin = parser.destDict[dest]
+    jumpBin = parser.jumpDict[jump]
+    machineCode = `111${compBin}${destBin}${jumpBin}`
+
+    return machineCode
 }
 
 
